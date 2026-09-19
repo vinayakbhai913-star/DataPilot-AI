@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataPilot AI — Business Analytics</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:#172033}
+header{background:#111827;color:white;padding:24px 6%;display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:26px;font-weight:800}.brand span{color:#55d6be}
+.badge{font-size:12px;background:#243047;padding:7px 11px;border-radius:20px}
+main{max-width:1200px;margin:30px auto;padding:0 20px}
+.upload{background:white;border:2px dashed #b9c4d6;border-radius:16px;padding:28px;text-align:center}
+input[type=file]{margin:16px 0}
+button{border:0;border-radius:9px;padding:11px 20px;background:#111827;color:white;font-weight:700;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+#status{margin-top:12px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:22px}
+.card{background:white;border-radius:14px;padding:20px;box-shadow:0 4px 18px rgba(20,30,50,.06)}
+.label{font-size:13px;color:#697386}.value{font-size:27px;font-weight:800;margin-top:8px}
+.section{margin-top:22px}.section h2{font-size:19px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.row{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #edf0f5}
+.barwrap{margin:12px 0}.barlabel{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+.bar{height:9px;background:#e8edf4;border-radius:8px;overflow:hidden}.bar i{display:block;height:100%;background:#18a999;border-radius:8px}
+.insight{background:#f0fbf8;border-left:4px solid #18a999;padding:12px;margin:9px 0;border-radius:7px}
+.hidden{display:none}
+.error{color:#b42318}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.cols{grid-template-columns:1fr}}
+@media(max-width:500px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">DataPilot <span>AI</span></div>
+  <div class="badge">Business Analytics Engine v2</div>
+</header>
+
+<main>
+  <div class="upload">
+    <h2>Upload Business Data</h2>
+    <p>Upload a CSV file and DataPilot will analyze it automatically.</p>
+    <input id="file" type="file" accept=".csv">
+    <br>
+    <button id="analyze">Analyze Data</button>
+    <div id="status"></div>
+  </div>
+
+  <div id="dashboard" class="hidden">
+
+    <div class="grid">
+      <div class="card"><div class="label">Revenue</div><div id="revenue" class="value">—</div></div>
+      <div class="card"><div class="label">Profit</div><div id="profit" class="value">—</div></div>
+      <div class="card"><div class="label">Orders</div><div id="orders" class="value">—</div></div>
+      <div class="card"><div class="label">AOV</div><div id="aov" class="value">—</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="card"><div class="label">Cost</div><div id="cost" class="value">—</div></div>
+      <div class="card"><div class="label">Profit Margin</div><div id="margin" class="value">—</div></div>
+      <div class="card"><div class="label">Return Rate</div><div id="returns" class="value">—</div></div>
+      <div class="card"><div class="label">Quantity Sold</div><div id="quantity" class="value">—</div></div>
+    </div>
+
+    <div class="cols section">
+      <div class="card">
+        <h2>🏆 Product Performance</h2>
+        <div id="products"></div>
+        <div class="card">
+    <h2>🤖 AI Business Insights</h2>
+    <div id="insights">
+        <p>Upload your CSV and click "Analyze Data" to generate AI insights.</p>
+    </div>
+</div>
+      </div>
+      <div class="card">
+        <h2>🌍 Regional Performance</h2>
+        <div id="regions"></div>
+      </div>
+    </div>
+
+    <div class="cols section">
+      <div class="card">
+        <h2>📦 Category Performance</h2>
+        <div id="categories"></div>
+      </div>
+      <div class="card">
+        <h2>📅 Monthly Revenue</h2>
+        <div id="months"></div>
+      </div>
+    </div>
+
+    <div class="card section">
+      <h2>🧠 DataPilot Business Insights</h2>
+      <div id="insights"></div>
+    </div>
+
+    <div class="card section">
+      <h2>🔎 Data Quality</h2>
+      <div id="quality"></div>
+    </div>
+  </div>
+  
+</main>
+
+<script>
+const fileInput = document.getElementById("file");
+const button = document.getElementById("analyze");
+const statusBox = document.getElementById("status");
+
+function money(v){return "₹" + Number(v||0).toLocaleString("en-IN",{maximumFractionDigits:2})}
+function pct(v){return Number(v||0).toFixed(2) + "%"}
+function listBars(el, items, labelKey, maxValue){
+  const box=document.getElementById(el);
+  box.innerHTML="";
+  items.forEach(x=>{
+    const value=Number(x.revenue||0);
+    const width=maxValue ? Math.max(3,(value/maxValue)*100) : 3;
+    box.innerHTML += `<div class="barwrap">
+      <div class="barlabel"><span>${x[labelKey]}</span><b>${money(value)}</b></div>
+      <div class="bar"><i style="width:${width}%"></i></div>
+    </div>`;
+  });
+}
+
+button.onclick = async () => {
+  const file=fileInput.files[0];
+  if(!file){statusBox.innerHTML='<span class="error">Please choose a CSV file.</span>';return}
+  button.disabled=true;
+  statusBox.textContent="Analyzing your data...";
+  try{
+    const form=new FormData();
+    form.append("file",file);
+    const res=await fetch("/analyze",{method:"POST",body:form});
+    const data=await res.json();
+    if(!res.ok || data.error) throw new Error(data.error || "Analysis failed");
+
+    const m=data.business_metrics;
+    document.getElementById("revenue").textContent=money(m.total_revenue);
+    document.getElementById("profit").textContent=money(m.total_profit);
+    document.getElementById("orders").textContent=m.total_orders.toLocaleString("en-IN");
+    document.getElementById("aov").textContent=money(m.average_order_value);
+    document.getElementById("cost").textContent=money(m.total_cost);
+    document.getElementById("margin").textContent=pct(m.profit_margin_percent);
+    document.getElementById("returns").textContent=pct(m.return_rate_percent);
+    document.getElementById("quantity").textContent=m.total_quantity.toLocaleString("en-IN");
+
+    const p=data.product_analysis||[];
+    const r=data.region_analysis||[];
+    const c=data.category_analysis||[];
+    const maxP=Math.max(...p.map(x=>Number(x.revenue)),1);
+    const maxR=Math.max(...r.map(x=>Number(x.revenue)),1);
+    const maxC=Math.max(...c.map(x=>Number(x.revenue)),1);
+    listBars("products",p,"product",maxP);
+    listBars("regions",r,"region",maxR);
+    listBars("categories",c,"category",maxC);
+
+const months = document.getElementById("months");
+
+months.innerHTML = `
+    <canvas id="monthlyRevenueChart"></canvas>
+`;
+
+const monthlyData = data.monthly_revenue || {};
+
+const monthLabels = Object.keys(monthlyData);
+const monthValues = Object.values(monthlyData).map(value => Number(value) || 0);
+
+new Chart(document.getElementById("monthlyRevenueChart"), {
+    type: "line",
+    data: {
+        labels: monthLabels,
+        datasets: [{
+            label: "Monthly Revenue",
+            data: monthValues,
+            borderWidth: 3,
+            tension: 0.3,
+            fill: false
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: true
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+    const insights=document.getElementById("insights");
+    insights.innerHTML="";
+    (data.business_insights||[]).forEach(x=>{
+      insights.innerHTML += `<div class="insight">${x}</div>`;
+    });
+
+    const quality=document.getElementById("quality");
+    const missing=Object.entries(data.data_quality?.missing_values||{})
+      .filter(([k,v])=>Number(v)>0);
+    quality.innerHTML = `
+      <div class="row"><span>Duplicate order records</span><b>${data.data_quality?.duplicate_orders||0}</b></div>
+      <div class="row"><span>Columns with missing values</span><b>${missing.length}</b></div>
+      <div class="row"><span>Rows analyzed</span><b>${data.file.rows}</b></div>`;
+// ================= CHARTS =================
+
+
+let monthlymonths = [];
+let revenueValues = [];
+
+if (Array.isArray(monthlyData)) {
+    monthlyData.forEach(item => {
+        monthlymonths.push(item.month || item.date || item.label || "");
+        revenueValues.push(
+            Number(item.revenue || item.total_revenue || item.value || 0)
+        );
+    });
+} else {
+    Object.entries(monthlyData).forEach(([month, value]) => {
+        monthlymonths.push(month);
+        
+        if (typeof value === "object") {
+            revenueValues.push(
+                Number(value.revenue || value.total_revenue || value.value || 0)
+            );
+        } else {
+            revenueValues.push(Number(value || 0));
+        }
+    });
+}
+
+// Revenue Chart
+const revenueCanvas = document.getElementById("revenueChart");
+
+if (revenueCanvas) {
+    new Chart(revenueCanvas, {
+        type: "line",
+        data: {
+            labels: months,
+            datasets: [{
+                label: "Revenue",
+                data: revenueValues,
+                borderWidth: 3,
+                tension: 0.3,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            }
+        }
+    });
+}
+
+// Profit Chart
+const profitCanvas = document.getElementById("profitChart");
+
+if (profitCanvas) {
+    new Chart(profitCanvas, {
+        type: "bar",
+        data: {
+            labels: ["Revenue", "Cost", "Profit"],
+            datasets: [{
+                label: "Business Performance",
+                data: [
+                    Number(data.business_metrics?.total_revenue || 0),
+                    Number(data.business_metrics?.total_cost || 0),
+                    Number(data.business_metrics?.total_profit || 0)
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+}
+    document.getElementById("dashboard").classList.remove("hidden");
+    statusBox.textContent="Analysis complete ✓";
+  }catch(e){
+    statusBox.innerHTML='<span class="error">'+e.message+'</span>';
+  }finally{
+    button.disabled=false;
+  }
+};
+</script>
+<footer style="text-align:center; padding:25px; margin-top:30px;">
+    © 2026 DataPilot AI
+    <br>
+    Created by <strong>Vinayak Rathod</strong>
+</footer>
+</body>
+</html>
