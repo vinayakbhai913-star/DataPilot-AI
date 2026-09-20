@@ -415,4 +415,6 @@ from pathlib import Path
 
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard():
-    html = (Path(__file__).parent / "datapilot_dashboard.html").read_text(encoding="utf-8")
+    html_path = Path(__file__).parent / "datapilot_dashboard.html"
+    html = html_path.read_text(encoding="utf-8")
+    return HTMLResponse(content=html)
