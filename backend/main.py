@@ -5,7 +5,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, date, timedelta
 
 from openpyxl import load_workbook, Workbook
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, PlainTextResponse
 from pathlib import Path
 
 
@@ -14,6 +14,12 @@ app = FastAPI(
     description="AI-powered Business Analytics Platform",
     version="2.0.0"
 )
+
+@app.get("/googlea31052ed2d824bc7.html")
+def google_verification():
+    return PlainTextResponse(
+        "google-site-verification: googlea31052ed2d824bc7.html"
+    )
 
 latest_report = {}
 
