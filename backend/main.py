@@ -258,22 +258,52 @@ async def analyze(file: UploadFile = File(...)):
         region_orders[region] += 1
 
         # Month
-        order_date = row.get("order_date", "").strip()
+order_date = (
+    row.get("order_date")
+    or row.get("Order Date")
+    or row.get("order date")
+    or row.get("date")
+    or row.get("Date")
+    or ""
+)
 
-        if order_date:
+if order_date:
 
-            try:
-                date = datetime.strptime(
-                    order_date,
-                    "%Y-%m-%d"
-                )
+    try:
+        # Excel date can already be a datetime object
+        if isinstance(order_date, datetime):
+            date = order_date
 
-                month = date.strftime("%Y-%m")
+        else:
+            order_date = str(order_date).strip()
 
-                monthly_revenue[month] += revenue
+            date = None
 
-            except:
-                pass
+            date_formats = [
+                "%Y-%m-%d",
+                "%d-%m-%Y",
+                "%m-%d-%Y",
+                "%Y/%m/%d",
+                "%d/%m/%Y",
+                "%m/%d/%Y",
+                "%Y-%m-%d %H:%M:%S",
+                "%d-%m-%Y %H:%M:%S",
+                "%m/%d/%Y %H:%M:%S"
+            ]
+
+            for fmt in date_formats:
+                try:
+                    date = datetime.strptime(order_date, fmt)
+                    break
+                except ValueError:
+                    continue
+
+        if date:
+            month = date.strftime("%Y-%m")
+            monthly_revenue[month] += revenue
+
+    except Exception:
+        pass
 
     # -----------------------------
     # FINAL METRICS
