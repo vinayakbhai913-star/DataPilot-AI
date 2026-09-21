@@ -2,20 +2,26 @@ from fastapi import FastAPI, UploadFile, File
 import csv
 import io
 from collections import Counter, defaultdict
-from datetime import datetime
-from openpyxl import load_workbook,Workbook
+from datetime import datetime, date, timedelta
+
+from openpyxl import load_workbook, Workbook
 from fastapi.responses import HTMLResponse, StreamingResponse
+from pathlib import Path
+
 
 app = FastAPI(
     title="DataPilot AI",
     description="AI-powered Business Analytics Platform",
     version="2.0.0"
 )
+
 latest_report = {}
+
 
 # -----------------------------
 # HOME
 # -----------------------------
+
 @app.get("/")
 def home():
     return {
@@ -29,6 +35,7 @@ def home():
 # -----------------------------
 # HEALTH CHECK
 # -----------------------------
+
 @app.get("/health")
 def health():
     return {
@@ -38,11 +45,28 @@ def health():
 
 
 # -----------------------------
+# DASHBOARD
+# -----------------------------
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard():
+    html_path = Path(__file__).parent / "datapilot_dashboard.html"
+    html = html_path.read_text(encoding="utf-8")
+    return HTMLResponse(content=html)
+
+
+# -----------------------------
 # HELPER FUNCTIONS
 # -----------------------------
+
 def to_float(value):
     try:
-        return float(str(value).replace(",", "").strip())
+        return float(
+            str(value)
+            .replace(",", "")
+            .replace("₹", "")
+            .strip()
+        )
     except:
         return 0.0
 
@@ -54,16 +78,76 @@ def to_int(value):
         return 0
 
 
+def parse_order_date(value):
+    """
+    Converts different date formats into a Python datetime.
+    """
+
+    if value is None:
+        return None
+
+    if isinstance(value, datetime):
+        return value
+
+    if isinstance(value, date):
+        return datetime.combine(value, datetime.min.time())
+
+    value = str(value).strip()
+
+    if not value:
+        return None
+
+    # Excel serial date
+    try:
+        serial = float(value)
+
+        if 1 < serial < 60000:
+            return datetime(1899, 12, 30) + timedelta(days=serial)
+    except:
+        pass
+
+    formats = [
+        "%Y-%m-%d",
+        "%d-%m-%Y",
+        "%m-%d-%Y",
+        "%Y/%m/%d",
+        "%d/%m/%Y",
+        "%m/%d/%Y",
+
+        "%Y-%m-%d %H:%M:%S",
+        "%d-%m-%Y %H:%M:%S",
+        "%m-%d-%Y %H:%M:%S",
+        "%Y/%m/%d %H:%M:%S",
+        "%d/%m/%Y %H:%M:%S",
+        "%m/%d/%Y %H:%M:%S",
+
+        "%d %b %Y",
+        "%d %B %Y",
+        "%b %d, %Y",
+        "%B %d, %Y"
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+
+    return None
+
+
 # -----------------------------
 # ANALYTICS ENGINE
 # -----------------------------
+
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
+
     # -----------------------------
     # CHECK FILE TYPE
     # -----------------------------
 
-    filename = file.filename.lower()
+    filename = (file.filename or "").lower()
 
     if not filename.endswith((".csv", ".xlsx")):
         return {
@@ -72,9 +156,15 @@ async def analyze(file: UploadFile = File(...)):
 
     content = await file.read()
 
+    # -----------------------------
+    # READ FILE
+    # -----------------------------
+
     try:
+
         # Excel XLSX
         if filename.endswith(".xlsx"):
+
             workbook = load_workbook(
                 filename=io.BytesIO(content),
                 data_only=True
@@ -84,45 +174,67 @@ async def analyze(file: UploadFile = File(...)):
             data = list(sheet.values)
 
             if not data:
-                return {"error": "Excel file is empty."}
+                return {
+                    "error": "Excel file is empty."
+                }
 
             columns = [
-                str(column) if column is not None else ""
+                str(column).strip()
+                if column is not None
+                else ""
                 for column in data[0]
             ]
 
             rows = []
 
             for values in data[1:]:
+
                 row = {}
 
                 for i, column in enumerate(columns):
-                    value = values[i] if i < len(values) else ""
-                    row[column] = "" if value is None else str(value)
+
+                    value = (
+                        values[i]
+                        if i < len(values)
+                        else ""
+                    )
+
+                    row[column] = (
+                        ""
+                        if value is None
+                        else str(value)
+                    )
 
                 rows.append(row)
 
         # CSV
         else:
+
             try:
                 text = content.decode("utf-8-sig")
+
             except UnicodeDecodeError:
                 return {
                     "error": "Could not read the CSV encoding."
                 }
 
-            reader = csv.DictReader(io.StringIO(text))
+            reader = csv.DictReader(
+                io.StringIO(text)
+            )
+
             rows = list(reader)
             columns = reader.fieldnames or []
 
     except Exception as e:
+
         return {
             "error": f"Could not read the file: {str(e)}"
         }
 
     if not rows:
+
         return {
-            "error": "CSV file is empty."
+            "error": "CSV/Excel file is empty."
         }
 
     # -----------------------------
@@ -132,20 +244,39 @@ async def analyze(file: UploadFile = File(...)):
     missing_values = {}
 
     for column in columns:
+
         missing_values[column] = sum(
             1
             for row in rows
-            if str(row.get(column, "")).strip() == ""
+            if str(
+                row.get(column, "")
+            ).strip() == ""
         )
 
-    # Duplicate order IDs
+    # -----------------------------
+    # DUPLICATE ORDER IDs
+    # -----------------------------
+
     duplicate_orders = 0
 
     if "order_id" in columns:
+
         order_ids = [
-            row.get("order_id", "").strip()
+            str(
+                row.get(
+                    "order_id",
+                    ""
+                )
+            ).strip()
+
             for row in rows
-            if row.get("order_id", "").strip()
+
+            if str(
+                row.get(
+                    "order_id",
+                    ""
+                )
+            ).strip()
         ]
 
         counts = Counter(order_ids)
@@ -176,140 +307,262 @@ async def analyze(file: UploadFile = File(...)):
     category_orders = Counter()
     region_orders = Counter()
 
+    # -----------------------------
+    # PROCESS EACH ROW
+    # -----------------------------
+
     for row in rows:
 
-        # Smart column detection
+        # -------------------------
+        # Quantity
+        # -------------------------
+
         quantity = to_int(
-            row.get("quantity",
-            row.get("qty",
-            row.get("Qty", 0)))
+            row.get(
+                "quantity",
+                row.get(
+                    "qty",
+                    row.get(
+                        "Qty",
+                        0
+                    )
+                )
+            )
         )
+
+        # -------------------------
+        # Unit Price
+        # -------------------------
 
         unit_price = to_float(
-            row.get("unit_price",
-            row.get("price",
-            row.get("Price", 0)))
+            row.get(
+                "unit_price",
+                row.get(
+                    "price",
+                    row.get(
+                        "Price",
+                        0
+                    )
+                )
+            )
         )
+
+        # -------------------------
+        # Cost Per Unit
+        # -------------------------
 
         cost_per_unit = to_float(
-            row.get("cost_per_unit",
-            row.get("cost",
-            row.get("Cost", 0)))
+            row.get(
+                "cost_per_unit",
+                row.get(
+                    "cost",
+                    row.get(
+                        "Cost",
+                        0
+                    )
+                )
+            )
         )
+
+        # -------------------------
+        # Discount
+        # -------------------------
 
         discount = to_float(
-            row.get("discount",
-            row.get("Discount", 0))
+            row.get(
+                "discount",
+                row.get(
+                    "Discount",
+                    0
+                )
+            )
         )
 
+        # -------------------------
         # Revenue
+        # -------------------------
+
         existing_revenue = to_float(
-            row.get("revenue",
-            row.get("Revenue", 0))
+            row.get(
+                "revenue",
+                row.get(
+                    "Revenue",
+                    0
+                )
+            )
         )
 
         if existing_revenue > 0:
-            revenue = existing_revenue
-        else:
-            gross_amount = quantity * unit_price
-            discount_amount = gross_amount * (discount / 100)
-            revenue = gross_amount - discount_amount
 
-        # Cost
-        if cost_per_unit > 0:
-            cost = quantity * cost_per_unit
+            revenue = existing_revenue
+
         else:
-            cost = to_float(
-                row.get("total_cost",
-                row.get("Total Cost", 0))
+
+            gross_amount = (
+                quantity * unit_price
             )
 
+            discount_amount = (
+                gross_amount *
+                (discount / 100)
+            )
+
+            revenue = (
+                gross_amount -
+                discount_amount
+            )
+
+        # -------------------------
+        # Cost
+        # -------------------------
+
+        if cost_per_unit > 0:
+
+            cost = (
+                quantity *
+                cost_per_unit
+            )
+
+        else:
+
+            cost = to_float(
+                row.get(
+                    "total_cost",
+                    row.get(
+                        "Total Cost",
+                        0
+                    )
+                )
+            )
+
+        # -------------------------
         # Profit
+        # -------------------------
+
         profit = revenue - cost
 
         total_quantity += quantity
         total_revenue += revenue
         total_cost += cost
 
+        # -------------------------
         # Return
+        # -------------------------
+
         return_status = str(
-            row.get("return_status", "")
+            row.get(
+                "return_status",
+                row.get(
+                    "Return Status",
+                    ""
+                )
+            )
         ).strip().lower()
 
-        if return_status in ["yes", "returned", "true", "1"]:
+        if return_status in [
+            "yes",
+            "returned",
+            "true",
+            "1"
+        ]:
+
             returned_orders += 1
 
+        # -------------------------
         # Product
-        product = row.get("product", "Unknown").strip()
+        # -------------------------
+
+        product = str(
+            row.get(
+                "product",
+                row.get(
+                    "Product",
+                    "Unknown"
+                )
+            )
+        ).strip()
+
+        if not product:
+            product = "Unknown"
 
         product_revenue[product] += revenue
         product_orders[product] += 1
 
+        # -------------------------
         # Category
-        category = row.get("category", "Unknown").strip()
+        # -------------------------
+
+        category = str(
+            row.get(
+                "category",
+                row.get(
+                    "Category",
+                    "Unknown"
+                )
+            )
+        ).strip()
+
+        if not category:
+            category = "Unknown"
 
         category_revenue[category] += revenue
         category_orders[category] += 1
 
+        # -------------------------
         # Region
-        region = row.get("region", "Unknown").strip()
+        # -------------------------
+
+        region = str(
+            row.get(
+                "region",
+                row.get(
+                    "Region",
+                    "Unknown"
+                )
+            )
+        ).strip()
+
+        if not region:
+            region = "Unknown"
 
         region_revenue[region] += revenue
         region_orders[region] += 1
 
-        # Month
-order_date = (
-    row.get("order_date")
-    or row.get("Order Date")
-    or row.get("order date")
-    or row.get("date")
-    or row.get("Date")
-    or ""
-)
+        # -------------------------
+        # MONTHLY REVENUE
+        # -------------------------
 
-if order_date:
+        order_date = (
+            row.get("order_date")
+            or row.get("Order Date")
+            or row.get("order date")
+            or row.get("date")
+            or row.get("Date")
+            or row.get("ORDER_DATE")
+            or row.get("ORDER DATE")
+            or ""
+        )
 
-    try:
-        # Excel date can already be a datetime object
-        if isinstance(order_date, datetime):
-            date = order_date
+        parsed_date = parse_order_date(
+            order_date
+        )
 
-        else:
-            order_date = str(order_date).strip()
+        if parsed_date:
 
-            date = None
+            month = parsed_date.strftime(
+                "%Y-%m"
+            )
 
-            date_formats = [
-                "%Y-%m-%d",
-                "%d-%m-%Y",
-                "%m-%d-%Y",
-                "%Y/%m/%d",
-                "%d/%m/%Y",
-                "%m/%d/%Y",
-                "%Y-%m-%d %H:%M:%S",
-                "%d-%m-%Y %H:%M:%S",
-                "%m/%d/%Y %H:%M:%S"
-            ]
-
-            for fmt in date_formats:
-                try:
-                    date = datetime.strptime(order_date, fmt)
-                    break
-                except ValueError:
-                    continue
-
-        if date:
-            month = date.strftime("%Y-%m")
             monthly_revenue[month] += revenue
-
-    except Exception:
-        pass
 
     # -----------------------------
     # FINAL METRICS
     # -----------------------------
 
-    total_profit = total_revenue - total_cost
+    total_profit = (
+        total_revenue -
+        total_cost
+    )
 
     average_order_value = (
         total_revenue / total_orders
@@ -333,67 +586,125 @@ if order_date:
     # TOP PERFORMERS
     # -----------------------------
 
-    top_product = max(
-        product_revenue,
-        key=product_revenue.get
-    ) if product_revenue else None
+    top_product = (
+        max(
+            product_revenue,
+            key=product_revenue.get
+        )
+        if product_revenue
+        else None
+    )
 
-    top_category = max(
-        category_revenue,
-        key=category_revenue.get
-    ) if category_revenue else None
+    top_category = (
+        max(
+            category_revenue,
+            key=category_revenue.get
+        )
+        if category_revenue
+        else None
+    )
 
-    top_region = max(
-        region_revenue,
-        key=region_revenue.get
-    ) if region_revenue else None
+    top_region = (
+        max(
+            region_revenue,
+            key=region_revenue.get
+        )
+        if region_revenue
+        else None
+    )
 
     # -----------------------------
-    # SORTED REPORTS
+    # SORTED PRODUCT REPORT
     # -----------------------------
 
     top_products = sorted(
+
         [
             {
                 "product": product,
-                "revenue": round(revenue, 2),
-                "orders": product_orders[product]
+                "revenue": round(
+                    revenue,
+                    2
+                ),
+                "orders": product_orders[
+                    product
+                ]
             }
-            for product, revenue in product_revenue.items()
+
+            for product, revenue
+            in product_revenue.items()
         ],
+
         key=lambda x: x["revenue"],
         reverse=True
     )
 
+    # -----------------------------
+    # SORTED CATEGORY REPORT
+    # -----------------------------
+
     top_categories = sorted(
+
         [
             {
                 "category": category,
-                "revenue": round(revenue, 2),
-                "orders": category_orders[category]
+                "revenue": round(
+                    revenue,
+                    2
+                ),
+                "orders": category_orders[
+                    category
+                ]
             }
-            for category, revenue in category_revenue.items()
+
+            for category, revenue
+            in category_revenue.items()
         ],
+
         key=lambda x: x["revenue"],
         reverse=True
     )
 
+    # -----------------------------
+    # SORTED REGION REPORT
+    # -----------------------------
+
     top_regions = sorted(
+
         [
             {
                 "region": region,
-                "revenue": round(revenue, 2),
-                "orders": region_orders[region]
+                "revenue": round(
+                    revenue,
+                    2
+                ),
+                "orders": region_orders[
+                    region
+                ]
             }
-            for region, revenue in region_revenue.items()
+
+            for region, revenue
+            in region_revenue.items()
         ],
+
         key=lambda x: x["revenue"],
         reverse=True
     )
 
+    # -----------------------------
+    # MONTHLY REPORT
+    # -----------------------------
+
     monthly_report = {
-        month: round(revenue, 2)
-        for month, revenue in sorted(monthly_revenue.items())
+        month: round(
+            revenue,
+            2
+        )
+
+        for month, revenue
+        in sorted(
+            monthly_revenue.items()
+        )
     }
 
     # -----------------------------
@@ -403,47 +714,61 @@ if order_date:
     insights = []
 
     if top_product:
+
         insights.append(
             f"{top_product} generated the highest product revenue."
         )
 
     if top_region:
+
         insights.append(
             f"{top_region} generated the highest regional revenue."
         )
 
     if return_rate > 10:
+
         insights.append(
             f"Return rate is {return_rate:.2f}%, which should be investigated."
         )
 
     if profit_margin < 15:
+
         insights.append(
             f"Profit margin is {profit_margin:.2f}%, indicating limited margin."
         )
 
     if duplicate_orders > 0:
+
         insights.append(
             f"{duplicate_orders} duplicate order records were detected."
         )
 
     if not insights:
+
         insights.append(
             "No major data-quality or performance warning was detected."
         )
 
     # -----------------------------
-    # SAVE LATEST REPORT FOR EXCEL EXPORT
+    # SAVE LATEST REPORT
     # -----------------------------
 
     latest_report.update({
+
         "revenue": total_revenue,
+
         "cost": total_cost,
+
         "profit": total_profit,
+
         "orders": total_orders,
+
         "aov": average_order_value,
+
         "profit_margin": profit_margin,
+
         "return_rate": return_rate,
+
         "quantity_sold": total_quantity
     })
 
@@ -456,9 +781,13 @@ if order_date:
         "status": "success",
 
         "file": {
+
             "filename": file.filename,
+
             "rows": total_orders,
+
             "columns": len(columns),
+
             "column_names": columns
         },
 
@@ -527,54 +856,150 @@ if order_date:
 
         "business_insights": insights
     }
-from fastapi.responses import HTMLResponse
-from pathlib import Path
 
-@app.get("/dashboard", response_class=HTMLResponse)
-def dashboard():
-    html_path = Path(__file__).parent / "datapilot_dashboard.html"
-    html = html_path.read_text(encoding="utf-8")
-    return HTMLResponse(content=html)
+
+# -----------------------------
+# EXCEL EXPORT
+# -----------------------------
+
 @app.post("/export-excel")
 async def export_excel():
+
     wb = Workbook()
+
     ws = wb.active
+
     ws.title = "DataPilot Report"
 
-    ws.append(["DataPilot AI - Business Analysis Report"])
+    ws.append([
+        "DataPilot AI - Business Analysis Report"
+    ])
+
     ws.append([])
-    ws.append(["Metric", "Value"])
 
-    ws.append(["Revenue", latest_report.get("revenue", 0)])
-    ws.append(["Cost", latest_report.get("cost", 0)])
-    ws.append(["Profit", latest_report.get("profit", 0)])
-    ws.append(["Orders", latest_report.get("orders", 0)])
-    ws.append(["AOV", latest_report.get("aov", 0)])
-    ws.append(["Profit Margin", latest_report.get("profit_margin", 0)])
-    ws.append(["Return Rate", latest_report.get("return_rate", 0)])
-    ws.append(["Quantity Sold", latest_report.get("quantity_sold", 0)])
+    ws.append([
+        "Metric",
+        "Value"
+    ])
 
-    # Professional formatting
-    from openpyxl.styles import Font, Alignment
+    ws.append([
+        "Revenue",
+        latest_report.get(
+            "revenue",
+            0
+        )
+    ])
 
-    ws["A1"].font = Font(bold=True, size=16)
-    ws["A1"].alignment = Alignment(horizontal="center")
+    ws.append([
+        "Cost",
+        latest_report.get(
+            "cost",
+            0
+        )
+    ])
 
-    ws.merge_cells("A1:B1")
+    ws.append([
+        "Profit",
+        latest_report.get(
+            "profit",
+            0
+        )
+    ])
 
-    ws["A3"].font = Font(bold=True)
-    ws["B3"].font = Font(bold=True)
+    ws.append([
+        "Orders",
+        latest_report.get(
+            "orders",
+            0
+        )
+    ])
 
-    ws.column_dimensions["A"].width = 25
-    ws.column_dimensions["B"].width = 25
+    ws.append([
+        "AOV",
+        latest_report.get(
+            "aov",
+            0
+        )
+    ])
+
+    ws.append([
+        "Profit Margin",
+        latest_report.get(
+            "profit_margin",
+            0
+        )
+    ])
+
+    ws.append([
+        "Return Rate",
+        latest_report.get(
+            "return_rate",
+            0
+        )
+    ])
+
+    ws.append([
+        "Quantity Sold",
+        latest_report.get(
+            "quantity_sold",
+            0
+        )
+    ])
+
+    # -----------------------------
+    # PROFESSIONAL FORMATTING
+    # -----------------------------
+
+    from openpyxl.styles import (
+        Font,
+        Alignment
+    )
+
+    ws["A1"].font = Font(
+        bold=True,
+        size=16
+    )
+
+    ws["A1"].alignment = Alignment(
+        horizontal="center"
+    )
+
+    ws.merge_cells(
+        "A1:B1"
+    )
+
+    ws["A3"].font = Font(
+        bold=True
+    )
+
+    ws["B3"].font = Font(
+        bold=True
+    )
+
+    ws.column_dimensions[
+        "A"
+    ].width = 25
+
+    ws.column_dimensions[
+        "B"
+    ].width = 25
 
     output = io.BytesIO()
+
     wb.save(output)
+
     output.seek(0)
 
     return StreamingResponse(
+
         output,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+        media_type=(
+            "application/"
+            "vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        ),
+
         headers={
             "Content-Disposition":
             'attachment; filename="DataPilot_AI_Business_Report.xlsx"'
