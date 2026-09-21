@@ -3,301 +3,2459 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DataPilot AI — Business Analytics</title>
+
+<title>DataPilot AI - Business Analytics</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 <style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:#f5f7fb;color:#172033}
-header{background:#111827;color:white;padding:24px 6%;display:flex;justify-content:space-between;align-items:center}
-.brand{font-size:26px;font-weight:800}.brand span{color:#55d6be}
-.badge{font-size:12px;background:#243047;padding:7px 11px;border-radius:20px}
-main{max-width:1200px;margin:30px auto;padding:0 20px}
-.upload{background:white;border:2px dashed #b9c4d6;border-radius:16px;padding:28px;text-align:center}
-input[type=file]{margin:16px 0}
-button{border:0;border-radius:9px;padding:11px 20px;background:#111827;color:white;font-weight:700;cursor:pointer}
-button:disabled{opacity:.5;cursor:not-allowed}
-#status{margin-top:12px;font-size:14px}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:22px}
-.card{background:white;border-radius:14px;padding:20px;box-shadow:0 4px 18px rgba(20,30,50,.06)}
-.label{font-size:13px;color:#697386}.value{font-size:27px;font-weight:800;margin-top:8px}
-.section{margin-top:22px}.section h2{font-size:19px}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.row{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #edf0f5}
-.barwrap{margin:12px 0}.barlabel{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
-.bar{height:9px;background:#e8edf4;border-radius:8px;overflow:hidden}.bar i{display:block;height:100%;background:#18a999;border-radius:8px}
-.insight{background:#f0fbf8;border-left:4px solid #18a999;padding:12px;margin:9px 0;border-radius:7px}
-.hidden{display:none}
-.error{color:#b42318}
-@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.cols{grid-template-columns:1fr}}
-@media(max-width:500px){.grid{grid-template-columns:1fr}}
+:root{
+    --navy:#101a35;
+    --blue:#2563eb;
+    --cyan:#06b6d4;
+    --green:#10b981;
+    --purple:#7c3aed;
+    --orange:#f59e0b;
+    --red:#ef4444;
+    --bg:#f4f7fc;
+    --card:#ffffff;
+    --text:#14213d;
+    --muted:#6b7280;
+    --line:#e7ecf4;
+    --shadow:0 10px 30px rgba(16,26,53,.08);
+}
+
+*{
+    box-sizing:border-box;
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+    margin:0;
+    font-family:Inter,Segoe UI,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+}
+
+header{
+    background:linear-gradient(110deg,#0b1734,#16295a);
+    color:white;
+    padding:15px 5%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    position:sticky;
+    top:0;
+    z-index:100;
+    box-shadow:0 5px 20px rgba(9,20,45,.2);
+}
+
+.brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:25px;
+    font-weight:900;
+}
+
+.brand span{
+    color:#27d3c2;
+}
+
+.logo{
+    width:42px;
+    height:42px;
+    border-radius:12px;
+    background:linear-gradient(135deg,#2563eb,#06b6d4);
+    display:grid;
+    place-items:center;
+    font-size:18px;
+}
+
+.nav{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+}
+
+.navLink{
+    padding:9px 14px;
+    border-radius:20px;
+    color:#dbe7ff;
+    font-size:13px;
+    text-decoration:none;
+    transition:.2s;
+}
+
+.navLink:hover{
+    background:#ffffff18;
+    color:white;
+}
+
+.navLink.active{
+    background:#2563eb;
+    color:white;
+}
+
+.badge{
+    background:#ffffff18;
+    border:1px solid #ffffff22;
+    padding:8px 12px;
+    border-radius:20px;
+    font-size:12px;
+}
+
+main{
+    max-width:1400px;
+    margin:auto;
+    padding:28px 22px 40px;
+}
+
+section[id]{
+    scroll-margin-top:90px;
+}
+
+/* HERO */
+
+.hero{
+    display:grid;
+    grid-template-columns:1.35fr .65fr;
+    gap:20px;
+    margin-bottom:22px;
+}
+
+.heroText,
+.heroVisual,
+.upload,
+.card{
+    background:white;
+    border:1px solid var(--line);
+    box-shadow:var(--shadow);
+    border-radius:22px;
+}
+
+.heroText{
+    padding:35px;
+}
+
+.eyebrow{
+    display:inline-block;
+    background:#eef4ff;
+    color:var(--blue);
+    font-weight:800;
+    padding:7px 12px;
+    border-radius:20px;
+    font-size:12px;
+}
+
+h1{
+    font-size:clamp(32px,4vw,52px);
+    line-height:1.08;
+    margin:16px 0;
+}
+
+.gradient{
+    background:linear-gradient(90deg,#2563eb,#7c3aed,#06b6d4);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+}
+
+.heroText p{
+    font-size:16px;
+    line-height:1.7;
+    color:#58657c;
+    max-width:720px;
+}
+
+.features{
+    display:flex;
+    gap:20px;
+    flex-wrap:wrap;
+    margin-top:22px;
+}
+
+.feature{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    font-weight:700;
+}
+
+.icon{
+    width:35px;
+    height:35px;
+    border-radius:10px;
+    background:#eef4ff;
+    display:grid;
+    place-items:center;
+}
+
+.heroVisual{
+    padding:22px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(145deg,#edf6ff,#f9f7ff);
+}
+
+.mock{
+    width:100%;
+    max-width:370px;
+    background:white;
+    border-radius:18px;
+    padding:18px;
+    box-shadow:0 15px 35px rgba(19,36,82,.12);
+}
+
+.mockTop{
+    height:9px;
+    width:45%;
+    background:#dbeafe;
+    border-radius:20px;
+    margin-bottom:18px;
+}
+
+.mockChart{
+    height:150px;
+    display:flex;
+    align-items:end;
+    gap:10px;
+    padding:15px;
+    background:#f8fbff;
+    border-radius:14px;
+}
+
+.mockBar{
+    flex:1;
+    background:linear-gradient(#2563eb,#60a5fa);
+    border-radius:8px 8px 3px 3px;
+}
+
+.mockLine{
+    display:flex;
+    justify-content:space-between;
+    margin-top:14px;
+    font-size:12px;
+    color:#64748b;
+}
+
+/* UPLOAD */
+
+.upload{
+    padding:25px;
+    margin-bottom:25px;
+}
+
+.uploadGrid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+}
+
+.uploadBox{
+    border:2px dashed #b8c9e7;
+    border-radius:18px;
+    padding:25px;
+    background:#fbfdff;
+}
+
+.uploadTitle{
+    font-size:22px;
+    font-weight:850;
+    margin-bottom:7px;
+}
+
+.uploadSub{
+    color:var(--muted);
+}
+
+.fileRow{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin-top:18px;
+}
+
+input[type=file]{
+    max-width:100%;
+}
+
+button{
+    border:none;
+    border-radius:12px;
+    padding:13px 23px;
+    background:linear-gradient(90deg,#2563eb,#06b6d4);
+    color:white;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 8px 18px rgba(37,99,235,.2);
+}
+
+button:hover{
+    transform:translateY(-1px);
+}
+
+button:disabled{
+    opacity:.55;
+    cursor:not-allowed;
+}
+
+#status{
+    margin-top:12px;
+    font-size:14px;
+    font-weight:700;
+}
+
+.error{
+    color:#b42318;
+}
+
+.success{
+    color:#087443;
+}
+
+.progress{
+    display:none;
+    height:7px;
+    margin-top:13px;
+    background:#e8edf5;
+    border-radius:20px;
+    overflow:hidden;
+}
+
+.progress.active{
+    display:block;
+}
+
+.progress i{
+    display:block;
+    height:100%;
+    width:40%;
+    background:linear-gradient(90deg,#2563eb,#06b6d4);
+    animation:loading 1.1s infinite;
+}
+
+@keyframes loading{
+    0%{transform:translateX(-120%)}
+    100%{transform:translateX(330%)}
+}
+
+/* SAMPLE */
+
+.sample{
+    background:#f6f9ff;
+    border-radius:18px;
+    padding:20px;
+    border:1px solid #e5ebf5;
+}
+
+.sample h3{
+    margin-top:0;
+}
+
+.sample p{
+    color:var(--muted);
+    font-size:12px;
+}
+
+.tableScroll{
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12px;
+}
+
+th,td{
+    padding:9px;
+    border-bottom:1px solid var(--line);
+    text-align:left;
+    white-space:nowrap;
+}
+
+th{
+    color:#52627c;
+    background:#f8fafc;
+}
+
+/* SECTION */
+
+.sectionTitle{
+    display:flex;
+    justify-content:space-between;
+    align-items:end;
+    margin:28px 2px 13px;
+}
+
+.sectionTitle h2{
+    margin:0;
+    font-size:20px;
+}
+
+.sectionTitle span{
+    color:var(--muted);
+    font-size:12px;
+}
+
+/* KPI */
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+}
+
+.kpi{
+    background:white;
+    border:1px solid var(--line);
+    box-shadow:var(--shadow);
+    border-radius:18px;
+    padding:18px;
+}
+
+.kpiTop{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.kpiIcon{
+    width:35px;
+    height:35px;
+    border-radius:11px;
+    background:#eef4ff;
+    display:grid;
+    place-items:center;
+}
+
+.label{
+    font-size:12px;
+    color:#738099;
+    font-weight:700;
+}
+
+.value{
+    font-size:26px;
+    font-weight:900;
+    margin-top:10px;
+}
+
+/* CHARTS */
+
+.analytics{
+    display:grid;
+    grid-template-columns:1.3fr 1fr 1fr;
+    gap:16px;
+    margin-top:16px;
+}
+
+.card{
+    padding:19px;
+}
+
+.card h3{
+    margin:0 0 15px;
+    font-size:16px;
+}
+
+.chartWrap{
+    height:280px;
+}
+
+/* BARS */
+
+.two{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    margin-top:16px;
+}
+
+.barwrap{
+    margin:12px 0;
+}
+
+.barlabel{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    font-size:12px;
+    margin-bottom:6px;
+}
+
+.bar{
+    height:9px;
+    background:#e8edf5;
+    border-radius:20px;
+    overflow:hidden;
+}
+
+.bar i{
+    display:block;
+    height:100%;
+    background:linear-gradient(90deg,#2563eb,#06b6d4);
+    border-radius:20px;
+}
+
+/* INSIGHTS */
+
+.insight{
+    display:flex;
+    gap:10px;
+    padding:12px;
+    background:#f5fbfa;
+    border:1px solid #d8f2eb;
+    border-radius:12px;
+    margin:9px 0;
+    font-size:13px;
+    line-height:1.45;
+}
+
+/* QUALITY */
+
+.quality .row{
+    display:flex;
+    justify-content:space-between;
+    gap:15px;
+    padding:11px 0;
+    border-bottom:1px solid var(--line);
+    font-size:13px;
+}
+
+/* REPORT */
+
+.report-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:16px;
+}
+
+.report-btn{
+    font-size:13px;
+    padding:11px 15px;
+}
+
+/* ABOUT */
+
+.aboutGrid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+}
+
+.aboutItem{
+    background:#fff;
+    border:1px solid var(--line);
+    box-shadow:var(--shadow);
+    border-radius:18px;
+    padding:20px;
+}
+
+.aboutItem h3{
+    margin-top:0;
+}
+
+.aboutItem p{
+    color:#64748b;
+    line-height:1.65;
+    font-size:13px;
+}
+
+/* FOOTER */
+
+footer{
+    max-width:1400px;
+    margin:auto;
+    padding:25px 22px 35px;
+    color:#6b7280;
+    display:flex;
+    justify-content:space-between;
+    border-top:1px solid var(--line);
+    font-size:13px;
+}
+
+footer strong{
+    color:var(--text);
+}
+
+.hidden{
+    display:none !important;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:1000px){
+
+    .hero,
+    .uploadGrid,
+    .analytics,
+    .two,
+    .aboutGrid{
+        grid-template-columns:1fr;
+    }
+
+    .grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+}
+
+@media(max-width:700px){
+
+    header{
+        padding:12px 16px;
+        align-items:flex-start;
+    }
+
+    .brand{
+        font-size:19px;
+    }
+
+    .logo{
+        width:35px;
+        height:35px;
+    }
+
+    .navLink{
+        padding:7px 9px;
+        font-size:11px;
+    }
+
+    .badge{
+        display:none;
+    }
+
+    main{
+        padding:18px 12px 30px;
+    }
+
+    .heroText{
+        padding:23px;
+    }
+
+    h1{
+        font-size:34px;
+    }
+
+    .grid{
+        grid-template-columns:1fr 1fr;
+        gap:9px;
+    }
+
+    .kpi{
+        padding:13px;
+    }
+
+    .value{
+        font-size:20px;
+    }
+
+    .upload{
+        padding:14px;
+    }
+
+    .chartWrap{
+        height:230px;
+    }
+
+    footer{
+        display:block;
+        text-align:center;
+        line-height:1.8;
+    }
+}
+
+/* PRINT */
+
+@media print{
+
+    header,
+    .upload,
+    .sectionTitle span,
+    .report-actions,
+    footer,
+    #status,
+    .progress,
+    .heroVisual,
+    .features{
+        display:none !important;
+    }
+
+    body{
+        background:white;
+    }
+
+    main{
+        max-width:none;
+        padding:0;
+    }
+
+    #dashboard{
+        display:block !important;
+    }
+
+    .kpi,
+    .card{
+        box-shadow:none;
+        break-inside:avoid;
+    }
+}
 </style>
 </head>
+
 <body>
+
+<!-- ================= NAVBAR ================= -->
+
 <header>
-  <div class="brand">DataPilot <span>AI</span></div>
-  <div class="badge">Business Analytics Engine v2</div>
+
+    <div class="brand">
+        <div class="logo">▮▮▮</div>
+        DataPilot <span>AI</span>
+    </div>
+
+    <nav class="nav">
+
+        <a href="#home" class="navLink active">
+            🏠 Home
+        </a>
+
+        <a href="#uploadSection" class="navLink">
+            📤 Upload
+        </a>
+
+        <a href="#dashboard" class="navLink">
+            📊 Insights
+        </a>
+
+        <a href="#aboutSection" class="navLink">
+            ℹ️ About
+        </a>
+
+        <div class="badge">
+            Business Analytics Engine v2
+        </div>
+
+    </nav>
+
 </header>
 
+
 <main>
-  <div class="upload">
-    <h2>Upload Business Data</h2>
-    <p>Upload a CSV file and DataPilot will analyze it automatically.</p>
-    <input id="file" type="file" accept=".csv">
-    <br>
-    <button id="analyze">Analyze Data</button>
-    <div id="status"></div>
-  </div>
 
-  <div id="dashboard" class="hidden">
+<!-- ================= HERO ================= -->
 
-    <div class="grid">
-      <div class="card"><div class="label">Revenue</div><div id="revenue" class="value">—</div></div>
-      <div class="card"><div class="label">Profit</div><div id="profit" class="value">—</div></div>
-      <div class="card"><div class="label">Orders</div><div id="orders" class="value">—</div></div>
-      <div class="card"><div class="label">AOV</div><div id="aov" class="value">—</div></div>
+<section class="hero" id="home">
+
+    <div class="heroText">
+
+        <span class="eyebrow">
+            BUSINESS ANALYTICS PLATFORM
+        </span>
+
+        <h1>
+            Turn Your Business Data Into
+            <span class="gradient">
+                Actionable Insights
+            </span>
+        </h1>
+
+        <p>
+            Upload your CSV or Excel business data and DataPilot AI
+            automatically calculates key performance metrics,
+            product performance, regional performance,
+            trends and business insights.
+        </p>
+
+        <div class="features">
+
+            <div class="feature">
+                <div class="icon">⚡</div>
+                Fast Analysis
+            </div>
+
+            <div class="feature">
+                <div class="icon">✓</div>
+                Easy to Use
+            </div>
+
+            <div class="feature">
+                <div class="icon">▥</div>
+                Business Insights
+            </div>
+
+        </div>
+
     </div>
 
-    <div class="grid">
-      <div class="card"><div class="label">Cost</div><div id="cost" class="value">—</div></div>
-      <div class="card"><div class="label">Profit Margin</div><div id="margin" class="value">—</div></div>
-      <div class="card"><div class="label">Return Rate</div><div id="returns" class="value">—</div></div>
-      <div class="card"><div class="label">Quantity Sold</div><div id="quantity" class="value">—</div></div>
+
+    <div class="heroVisual">
+
+        <div class="mock">
+
+            <div class="mockTop"></div>
+
+            <div class="mockChart">
+
+                <div class="mockBar" style="height:35%"></div>
+                <div class="mockBar" style="height:52%"></div>
+                <div class="mockBar" style="height:45%"></div>
+                <div class="mockBar" style="height:72%"></div>
+                <div class="mockBar" style="height:90%"></div>
+
+            </div>
+
+            <div class="mockLine">
+
+                <b>Business Growth</b>
+
+                <span>
+                    Data → Insights
+                </span>
+
+            </div>
+
+        </div>
+
     </div>
 
-    <div class="cols section">
-      <div class="card">
-        <h2>🏆 Product Performance</h2>
-        <div id="products"></div>
-        <div class="card">
-    <h2>🤖 AI Business Insights</h2>
-    <div id="insights">
-        <p>Upload your CSV and click "Analyze Data" to generate AI insights.</p>
+</section>
+
+
+<!-- ================= UPLOAD ================= -->
+
+<section class="upload" id="uploadSection">
+
+    <div class="uploadGrid">
+
+        <div class="uploadBox">
+
+            <div class="uploadTitle">
+                ☁️ Upload Your Business Data
+            </div>
+
+            <p class="uploadSub">
+                Choose a CSV or Excel file to analyze your business performance.
+            </p>
+
+            <div class="fileRow">
+
+                <input
+                    id="file"
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                >
+
+                <button id="analyze" type="button">
+                    Analyze Data →
+                </button>
+
+            </div>
+
+            <div class="progress" id="progress">
+                <i></i>
+            </div>
+
+            <div id="status"></div>
+
+        </div>
+
+
+        <div class="sample">
+
+            <h3>
+                📄 Sample Data Format
+            </h3>
+
+            <div class="tableScroll">
+
+                <table>
+
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Date</th>
+                        <th>Product</th>
+                        <th>Region</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                    </tr>
+
+                    <tr>
+                        <td>ORD001</td>
+                        <td>2026-08-01</td>
+                        <td>Monitor</td>
+                        <td>East</td>
+                        <td>2</td>
+                        <td>23000</td>
+                    </tr>
+
+                    <tr>
+                        <td>ORD002</td>
+                        <td>2026-08-02</td>
+                        <td>Chair</td>
+                        <td>West</td>
+                        <td>3</td>
+                        <td>8500</td>
+                    </tr>
+
+                    <tr>
+                        <td>ORD003</td>
+                        <td>2026-08-03</td>
+                        <td>Keyboard</td>
+                        <td>North</td>
+                        <td>5</td>
+                        <td>1800</td>
+                    </tr>
+
+                </table>
+
+            </div>
+
+            <p>
+                Required fields normally include quantity,
+                unit_price, cost, product, category,
+                region and order_date.
+            </p>
+
+        </div>
+
     </div>
+
+</section>
+
+
+<!-- ================= TITLE ================= -->
+
+<div class="sectionTitle">
+
+    <h2>
+        📊 Key Business Metrics
+    </h2>
+
+    <span>
+        Overview of your business performance
+    </span>
+
 </div>
-      </div>
-      <div class="card">
-        <h2>🌍 Regional Performance</h2>
-        <div id="regions"></div>
-      </div>
+
+
+<!-- ================= DASHBOARD ================= -->
+
+<section id="dashboard" class="hidden">
+
+    <!-- KPI -->
+
+    <div class="grid">
+
+        <div class="kpi">
+            <div class="kpiTop">
+                <span class="label">Revenue</span>
+                <div class="kpiIcon">₹</div>
+            </div>
+            <div id="revenue" class="value">—</div>
+        </div>
+
+
+        <div class="kpi">
+            <div class="kpiTop">
+                <span class="label">Profit</span>
+                <div class="kpiIcon">📈</div>
+            </div>
+            <div id="profit" class="value">—</div>
+        </div>
+
+
+        <div class="kpi">
+            <div class="kpiTop">
+                <span class="label">Orders</span>
+                <div class="kpiIcon">🛒</div>
+            </div>
+            <div id="orders" class="value">—</div>
+        </div>
+
+
+        <div class="kpi">
+            <div class="kpiTop">
+                <span class="label">AOV</span>
+                <div class="kpiIcon">◆</div>
+            </div>
+            <div id="aov" class="value">—</div>
+        </div>
+
+
+        <div class="kpi">
+            <div class="kpiTop">
+                <span class="label">Cost</span>
+                <div class="kpiIcon">💳</div>
+            </div>
+            <div id="cost" class="value">—</div>
+        </div>
+
+
+        <div class="kpi">
+            <div class="kpiTop">
+                <span class="label">Profit Margin</span>
+                <div class="kpiIcon">%</div>
+            </div>
+            <div id="margin" class="value">—</div>
+        </div>
+
+
+        <div class="kpi">
+            <div class="kpiTop">
+                <span class="label">Return Rate</span>
+                <div class="kpiIcon">↩</div>
+            </div>
+            <div id="returns" class="value">—</div>
+        </div>
+
+
+        <div class="kpi">
+            <div class="kpiTop">
+                <span class="label">Quantity Sold</span>
+                <div class="kpiIcon">📦</div>
+            </div>
+            <div id="quantity" class="value">—</div>
+        </div>
+
     </div>
 
-    <div class="cols section">
-      <div class="card">
-        <h2>📦 Category Performance</h2>
-        <div id="categories"></div>
-      </div>
-      <div class="card">
-        <h2>📅 Monthly Revenue</h2>
-        <div id="months"></div>
-      </div>
+
+    <!-- CHARTS -->
+
+    <div class="analytics">
+
+        <div class="card">
+
+            <h3>
+                📈 Monthly Revenue
+            </h3>
+
+            <div class="chartWrap">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <h3>
+                🏆 Product Performance
+            </h3>
+
+            <div id="products"></div>
+
+        </div>
+
+
+        <div class="card">
+
+            <h3>
+                🌍 Regional Performance
+            </h3>
+
+            <div class="chartWrap">
+                <canvas id="regionChart"></canvas>
+            </div>
+
+        </div>
+
     </div>
 
-    <div class="card section">
-      <h2>🧠 DataPilot Business Insights</h2>
-      <div id="insights"></div>
+
+    <!-- CATEGORY + INSIGHTS -->
+
+    <div class="two">
+
+        <div class="card">
+
+            <h3>
+                📦 Category Performance
+            </h3>
+
+            <div id="categories"></div>
+
+        </div>
+
+
+        <div class="card" id="insightsSection">
+
+            <h3>
+                💡 Business Insights
+            </h3>
+
+            <div id="insights"></div>
+
+        </div>
+
     </div>
 
-    <div class="card section">
-      <h2>🔎 Data Quality</h2>
-      <div id="quality"></div>
+
+    <!-- SUMMARY -->
+
+    <div class="two">
+
+        <div class="card">
+
+            <h3>
+                📋 Analysis Summary
+            </h3>
+
+            <div id="summary"></div>
+
+            <div class="report-actions">
+
+                <button
+                    class="report-btn"
+                    type="button"
+                    onclick="downloadReport('pdf')"
+                >
+                    📄 Download PDF Report
+                </button>
+
+
+                <button
+                    class="report-btn"
+                    type="button"
+                    onclick="downloadReport('excel')"
+                >
+                    📊 Download Excel Report
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="card quality">
+
+            <h3>
+                🔎 Data Quality
+            </h3>
+
+            <div id="quality"></div>
+
+        </div>
+
     </div>
-  </div>
-  
+
+</section>
+
+
+<!-- ================= ABOUT ================= -->
+
+<section id="aboutSection" style="margin-top:30px">
+
+    <div class="sectionTitle">
+
+        <h2>
+            ℹ️ About DataPilot AI
+        </h2>
+
+        <span>
+            Simple Business Analytics
+        </span>
+
+    </div>
+
+
+    <div class="aboutGrid">
+
+        <div class="aboutItem">
+
+            <h3>
+                📊 What it does
+            </h3>
+
+            <p>
+                DataPilot AI analyzes uploaded business data
+                and presents revenue, cost, profit, orders,
+                AOV, margin, returns, product, category,
+                region and monthly performance.
+            </p>
+
+        </div>
+
+
+        <div class="aboutItem">
+
+            <h3>
+                ⚙️ How it works
+            </h3>
+
+            <p>
+                Select a CSV or Excel file, click Analyze Data,
+                and the file is sent to the FastAPI backend.
+                The analysis is then displayed automatically.
+            </p>
+
+        </div>
+
+
+        <div class="aboutItem">
+
+            <h3>
+                🚀 Reports
+            </h3>
+
+            <p>
+                After analysis you can save the dashboard as
+                a PDF or download a real Excel workbook
+                containing the calculated results.
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
 </main>
 
-<script>
-const fileInput = document.getElementById("file");
-const button = document.getElementById("analyze");
-const statusBox = document.getElementById("status");
 
-function money(v){return "₹" + Number(v||0).toLocaleString("en-IN",{maximumFractionDigits:2})}
-function pct(v){return Number(v||0).toFixed(2) + "%"}
-function listBars(el, items, labelKey, maxValue){
-  const box=document.getElementById(el);
-  box.innerHTML="";
-  items.forEach(x=>{
-    const value=Number(x.revenue||0);
-    const width=maxValue ? Math.max(3,(value/maxValue)*100) : 3;
-    box.innerHTML += `<div class="barwrap">
-      <div class="barlabel"><span>${x[labelKey]}</span><b>${money(value)}</b></div>
-      <div class="bar"><i style="width:${width}%"></i></div>
-    </div>`;
-  });
-}
+<!-- ================= FOOTER ================= -->
 
-button.onclick = async () => {
-  const file=fileInput.files[0];
-  if(!file){statusBox.innerHTML='<span class="error">Please choose a CSV file.</span>';return}
-  button.disabled=true;
-  statusBox.textContent="Analyzing your data...";
-  try{
-    const form=new FormData();
-    form.append("file",file);
-    const res=await fetch("/analyze",{method:"POST",body:form});
-    const data=await res.json();
-    if(!res.ok || data.error) throw new Error(data.error || "Analysis failed");
+<footer>
 
-    const m=data.business_metrics;
-    document.getElementById("revenue").textContent=money(m.total_revenue);
-    document.getElementById("profit").textContent=money(m.total_profit);
-    document.getElementById("orders").textContent=m.total_orders.toLocaleString("en-IN");
-    document.getElementById("aov").textContent=money(m.average_order_value);
-    document.getElementById("cost").textContent=money(m.total_cost);
-    document.getElementById("margin").textContent=pct(m.profit_margin_percent);
-    document.getElementById("returns").textContent=pct(m.return_rate_percent);
-    document.getElementById("quantity").textContent=m.total_quantity.toLocaleString("en-IN");
+    <div>
+        © 2026 DataPilot AI · Turn Data Into Better Decisions
+    </div>
 
-    const p=data.product_analysis||[];
-    const r=data.region_analysis||[];
-    const c=data.category_analysis||[];
-    const maxP=Math.max(...p.map(x=>Number(x.revenue)),1);
-    const maxR=Math.max(...r.map(x=>Number(x.revenue)),1);
-    const maxC=Math.max(...c.map(x=>Number(x.revenue)),1);
-    listBars("products",p,"product",maxP);
-    listBars("regions",r,"region",maxR);
-    listBars("categories",c,"category",maxC);
+    <div>
+        Created by
+        <strong>
+            Vinayak Rathod
+        </strong>
+    </div>
 
-const months = document.getElementById("months");
-
-months.innerHTML = `
-    <canvas id="monthlyRevenueChart"></canvas>
-`;
-
-const monthlyData = data.monthly_revenue || {};
-
-const monthLabels = Object.keys(monthlyData);
-const monthValues = Object.values(monthlyData).map(value => Number(value) || 0);
-
-new Chart(document.getElementById("monthlyRevenueChart"), {
-    type: "line",
-    data: {
-        labels: monthLabels,
-        datasets: [{
-            label: "Monthly Revenue",
-            data: monthValues,
-            borderWidth: 3,
-            tension: 0.3,
-            fill: false
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                display: true
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true
-            }
-        }
-    }
-});
-
-    const insights=document.getElementById("insights");
-    insights.innerHTML="";
-    (data.business_insights||[]).forEach(x=>{
-      insights.innerHTML += `<div class="insight">${x}</div>`;
-    });
-
-    const quality=document.getElementById("quality");
-    const missing=Object.entries(data.data_quality?.missing_values||{})
-      .filter(([k,v])=>Number(v)>0);
-    quality.innerHTML = `
-      <div class="row"><span>Duplicate order records</span><b>${data.data_quality?.duplicate_orders||0}</b></div>
-      <div class="row"><span>Columns with missing values</span><b>${missing.length}</b></div>
-      <div class="row"><span>Rows analyzed</span><b>${data.file.rows}</b></div>`;
-// ================= CHARTS =================
-
-
-let monthlymonths = [];
-let revenueValues = [];
-
-if (Array.isArray(monthlyData)) {
-    monthlyData.forEach(item => {
-        monthlymonths.push(item.month || item.date || item.label || "");
-        revenueValues.push(
-            Number(item.revenue || item.total_revenue || item.value || 0)
-        );
-    });
-} else {
-    Object.entries(monthlyData).forEach(([month, value]) => {
-        monthlymonths.push(month);
-        
-        if (typeof value === "object") {
-            revenueValues.push(
-                Number(value.revenue || value.total_revenue || value.value || 0)
-            );
-        } else {
-            revenueValues.push(Number(value || 0));
-        }
-    });
-}
-
-// Revenue Chart
-const revenueCanvas = document.getElementById("revenueChart");
-
-if (revenueCanvas) {
-    new Chart(revenueCanvas, {
-        type: "line",
-        data: {
-            labels: months,
-            datasets: [{
-                label: "Revenue",
-                data: revenueValues,
-                borderWidth: 3,
-                tension: 0.3,
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: true
-                }
-            }
-        }
-    });
-}
-
-// Profit Chart
-const profitCanvas = document.getElementById("profitChart");
-
-if (profitCanvas) {
-    new Chart(profitCanvas, {
-        type: "bar",
-        data: {
-            labels: ["Revenue", "Cost", "Profit"],
-            datasets: [{
-                label: "Business Performance",
-                data: [
-                    Number(data.business_metrics?.total_revenue || 0),
-                    Number(data.business_metrics?.total_cost || 0),
-                    Number(data.business_metrics?.total_profit || 0)
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true
-        }
-    });
-}
-    document.getElementById("dashboard").classList.remove("hidden");
-    statusBox.textContent="Analysis complete ✓";
-  }catch(e){
-    statusBox.innerHTML='<span class="error">'+e.message+'</span>';
-  }finally{
-    button.disabled=false;
-  }
-};
-</script>
-<footer style="text-align:center; padding:25px; margin-top:30px;">
-    © 2026 DataPilot AI
-    <br>
-    Created by <strong>Vinayak Rathod</strong>
 </footer>
+
+
+<script>
+
+/* ================= VARIABLES ================= */
+
+const fileInput =
+    document.getElementById("file");
+
+const button =
+    document.getElementById("analyze");
+
+const statusBox =
+    document.getElementById("status");
+
+const progress =
+    document.getElementById("progress");
+
+let monthlyChart = null;
+let regionChart = null;
+let latestData = null;
+
+
+/* ================= HELPERS ================= */
+
+function money(value){
+
+    return "₹" +
+        Number(value || 0)
+        .toLocaleString("en-IN",{
+            maximumFractionDigits:2
+        });
+
+}
+
+
+function pct(value){
+
+    return Number(value || 0)
+        .toFixed(2) + "%";
+
+}
+
+
+function esc(value){
+
+    return String(value ?? "")
+        .replace(/[&<>"']/g,function(match){
+
+            return {
+                "&":"&amp;",
+                "<":"&lt;",
+                ">":"&gt;",
+                '"':"&quot;",
+                "'":"&#039;"
+            }[match];
+
+        });
+
+}
+
+
+function safeArray(value){
+
+    return Array.isArray(value)
+        ? value
+        : [];
+
+}
+
+
+function listBars(
+    elementId,
+    items,
+    labelKey
+){
+
+    const box =
+        document.getElementById(elementId);
+
+    box.innerHTML = "";
+
+    items =
+        safeArray(items);
+
+    if(items.length === 0){
+
+        box.innerHTML =
+            '<p>No data available.</p>';
+
+        return;
+
+    }
+
+    const max =
+        Math.max(
+            ...items.map(
+                x => Number(x.revenue || 0)
+            ),
+            1
+        );
+
+
+    items.slice(0,7)
+        .forEach(function(item){
+
+            const value =
+                Number(item.revenue || 0);
+
+            const width =
+                Math.max(
+                    4,
+                    value / max * 100
+                );
+
+
+            box.innerHTML += `
+
+                <div class="barwrap">
+
+                    <div class="barlabel">
+
+                        <span>
+                            ${esc(item[labelKey])}
+                        </span>
+
+                        <b>
+                            ${money(value)}
+                        </b>
+
+                    </div>
+
+                    <div class="bar">
+
+                        <i
+                            style="width:${width}%">
+                        </i>
+
+                    </div>
+
+                </div>
+
+            `;
+
+        });
+
+}
+
+
+/* ================= ANALYZE ================= */
+
+button.onclick =
+async function(){
+
+    const file =
+        fileInput.files[0];
+
+
+    if(!file){
+
+        statusBox.innerHTML =
+            '<span class="error">' +
+            'Please choose a CSV or Excel file.' +
+            '</span>';
+
+        return;
+
+    }
+
+
+    const allowed =
+        [".csv",".xlsx",".xls"];
+
+    const filename =
+        file.name.toLowerCase();
+
+
+    if(!allowed.some(
+        ext => filename.endsWith(ext)
+    )){
+
+        statusBox.innerHTML =
+            '<span class="error">' +
+            'Only CSV, XLSX and XLS files are supported.' +
+            '</span>';
+
+        return;
+
+    }
+
+
+    button.disabled = true;
+
+    progress.classList.add("active");
+
+    statusBox.textContent =
+        "Analyzing your business data...";
+
+
+    try{
+
+        const form =
+            new FormData();
+
+
+        form.append(
+            "file",
+            file
+        );
+
+
+        const response =
+            await fetch(
+                "/analyze",
+                {
+                    method:"POST",
+                    body:form
+                }
+            );
+
+
+        let data;
+
+
+        try{
+
+            data =
+                await response.json();
+
+        }catch(e){
+
+            throw new Error(
+                "Server returned an invalid response. Check FastAPI terminal."
+            );
+
+        }
+
+
+        if(!response.ok || data.error){
+
+            throw new Error(
+                data.error ||
+                "Analysis failed."
+            );
+
+        }
+
+
+        latestData =
+            data;
+
+
+        /* ================= METRICS ================= */
+
+        const metrics =
+            data.business_metrics || {};
+
+
+        document.getElementById(
+            "revenue"
+        ).textContent =
+            money(
+                metrics.total_revenue
+            );
+
+
+        document.getElementById(
+            "profit"
+        ).textContent =
+            money(
+                metrics.total_profit
+            );
+
+
+        document.getElementById(
+            "orders"
+        ).textContent =
+            Number(
+                metrics.total_orders || 0
+            ).toLocaleString("en-IN");
+
+
+        document.getElementById(
+            "aov"
+        ).textContent =
+            money(
+                metrics.average_order_value
+            );
+
+
+        document.getElementById(
+            "cost"
+        ).textContent =
+            money(
+                metrics.total_cost
+            );
+
+
+        document.getElementById(
+            "margin"
+        ).textContent =
+            pct(
+                metrics.profit_margin_percent ??
+                metrics.profit_margin
+            );
+
+
+        document.getElementById(
+            "returns"
+        ).textContent =
+            pct(
+                metrics.return_rate_percent ??
+                metrics.return_rate
+            );
+
+
+        document.getElementById(
+            "quantity"
+        ).textContent =
+            Number(
+                metrics.total_quantity ??
+                metrics.quantity_sold ??
+                0
+            ).toLocaleString("en-IN");
+
+
+        /* ================= PRODUCT ================= */
+
+        listBars(
+            "products",
+            data.product_analysis,
+            "product"
+        );
+
+
+        /* ================= CATEGORY ================= */
+
+        listBars(
+            "categories",
+            data.category_analysis,
+            "category"
+        );
+
+
+        /* ================= REGION ================= */
+
+        const regions =
+            safeArray(
+                data.region_analysis
+            );
+
+
+        if(regionChart){
+
+            regionChart.destroy();
+
+            regionChart = null;
+
+        }
+
+
+        if(regions.length){
+
+            regionChart =
+                new Chart(
+                    document.getElementById(
+                        "regionChart"
+                    ),
+                    {
+
+                        type:"doughnut",
+
+                        data:{
+
+                            labels:
+                                regions.map(
+                                    x => x.region
+                                ),
+
+                            datasets:[{
+
+                                data:
+                                    regions.map(
+                                        x =>
+                                        Number(
+                                            x.revenue || 0
+                                        )
+                                    ),
+
+                                backgroundColor:[
+                                    "#2563eb",
+                                    "#10b981",
+                                    "#f59e0b",
+                                    "#7c3aed",
+                                    "#06b6d4",
+                                    "#ef4444",
+                                    "#64748b"
+                                ]
+
+                            }]
+
+                        },
+
+                        options:{
+
+                            responsive:true,
+
+                            maintainAspectRatio:false,
+
+                            plugins:{
+
+                                legend:{
+                                    position:"bottom"
+                                }
+
+                            }
+
+                        }
+
+                    }
+                );
+
+        }
+
+
+        /* ================= MONTHLY ================= */
+
+        const monthly =
+            data.monthly_revenue || {};
+
+
+        const labels =
+            Object.keys(monthly);
+
+
+        const values =
+            Object.values(monthly)
+            .map(Number);
+
+
+        if(monthlyChart){
+
+            monthlyChart.destroy();
+
+            monthlyChart = null;
+
+        }
+
+
+        if(labels.length){
+
+            monthlyChart =
+                new Chart(
+                    document.getElementById(
+                        "monthlyChart"
+                    ),
+                    {
+
+                        type:"line",
+
+                        data:{
+
+                            labels:labels,
+
+                            datasets:[{
+
+                                label:"Revenue",
+
+                                data:values,
+
+                                borderColor:"#2563eb",
+
+                                backgroundColor:
+                                    "rgba(37,99,235,.10)",
+
+                                borderWidth:3,
+
+                                tension:.35,
+
+                                fill:true
+
+                            }]
+
+                        },
+
+                        options:{
+
+                            responsive:true,
+
+                            maintainAspectRatio:false,
+
+                            plugins:{
+
+                                legend:{
+                                    display:false
+                                }
+
+                            },
+
+                            scales:{
+
+                                y:{
+                                    beginAtZero:true
+                                }
+
+                            }
+
+                        }
+
+                    }
+                );
+
+        }
+
+
+        /* ================= INSIGHTS ================= */
+
+        const insights =
+            document.getElementById(
+                "insights"
+            );
+
+
+        insights.innerHTML = "";
+
+
+        safeArray(
+            data.business_insights
+        ).forEach(
+            function(insight){
+
+                insights.innerHTML += `
+
+                    <div class="insight">
+
+                        <b>💡</b>
+
+                        <span>
+                            ${esc(insight)}
+                        </span>
+
+                    </div>
+
+                `;
+
+            }
+        );
+
+
+        if(!insights.innerHTML){
+
+            insights.innerHTML =
+                '<div class="insight">' +
+                'No additional insights generated.' +
+                '</div>';
+
+        }
+
+
+        /* ================= SUMMARY ================= */
+
+        const top =
+            data.top_performers || {};
+
+        const fileInfo =
+            data.file || {};
+
+
+        document.getElementById(
+            "summary"
+        ).innerHTML = `
+
+            <div class="tableScroll">
+
+                <table>
+
+                    <tr>
+                        <th>Metric</th>
+                        <th>Result</th>
+                    </tr>
+
+                    <tr>
+                        <td>File</td>
+                        <td>
+                            ${esc(
+                                fileInfo.filename ||
+                                file.name
+                            )}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Rows analyzed</td>
+                        <td>
+                            ${fileInfo.rows || 0}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Columns</td>
+                        <td>
+                            ${fileInfo.columns || 0}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Top Product</td>
+                        <td>
+                            ${esc(
+                                top.top_product ||
+                                "—"
+                            )}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Top Category</td>
+                        <td>
+                            ${esc(
+                                top.top_category ||
+                                "—"
+                            )}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Top Region</td>
+                        <td>
+                            ${esc(
+                                top.top_region ||
+                                "—"
+                            )}
+                        </td>
+                    </tr>
+
+                </table>
+
+            </div>
+
+        `;
+
+
+        /* ================= DATA QUALITY ================= */
+
+        const missing =
+            Object.entries(
+                data.data_quality?.missing_values || {}
+            )
+            .filter(
+                ([key,value]) =>
+                    Number(value) > 0
+            );
+
+
+        document.getElementById(
+            "quality"
+        ).innerHTML = `
+
+            <div class="row">
+
+                <span>
+                    Duplicate records
+                </span>
+
+                <b>
+                    ${
+                        data.data_quality
+                        ?.duplicate_orders || 0
+                    }
+                </b>
+
+            </div>
+
+
+            <div class="row">
+
+                <span>
+                    Columns with missing values
+                </span>
+
+                <b>
+                    ${missing.length}
+                </b>
+
+            </div>
+
+
+            <div class="row">
+
+                <span>
+                    Rows analyzed
+                </span>
+
+                <b>
+                    ${fileInfo.rows || 0}
+                </b>
+
+            </div>
+
+
+            <div class="row">
+
+                <span>
+                    Columns analyzed
+                </span>
+
+                <b>
+                    ${fileInfo.columns || 0}
+                </b>
+
+            </div>
+
+        `;
+
+
+        /* ================= SHOW DASHBOARD ================= */
+
+        document.getElementById(
+            "dashboard"
+        )
+        .classList
+        .remove("hidden");
+
+
+        statusBox.innerHTML =
+            '<span class="success">' +
+            'Analysis complete ✓' +
+            '</span>';
+
+
+        document.getElementById(
+            "dashboard"
+        )
+        .scrollIntoView({
+            behavior:"smooth",
+            block:"start"
+        });
+
+
+    }catch(error){
+
+        console.error(error);
+
+        statusBox.innerHTML =
+            '<span class="error">' +
+            esc(
+                error.message ||
+                "Something went wrong."
+            ) +
+            '</span>';
+
+    }finally{
+
+        button.disabled = false;
+
+        progress.classList.remove(
+            "active"
+        );
+
+    }
+
+};
+
+
+/* ================= REPORT ================= */
+
+function downloadReport(type){
+
+    if(!latestData){
+
+        alert(
+            "Please analyze a file first."
+        );
+
+        return;
+
+    }
+
+
+    if(type === "pdf"){
+
+        window.print();
+
+        return;
+
+    }
+
+
+    if(type === "excel"){
+
+        downloadExcelReport();
+
+        return;
+
+    }
+
+}
+
+
+/* ================= REAL EXCEL REPORT ================= */
+
+function downloadExcelReport(){
+
+    if(typeof XLSX === "undefined"){
+
+        alert(
+            "Excel library could not load. Check your internet connection."
+        );
+
+        return;
+
+    }
+
+
+    const data =
+        latestData;
+
+
+    const metrics =
+        data.business_metrics || {};
+
+
+    const top =
+        data.top_performers || {};
+
+
+    const fileInfo =
+        data.file || {};
+
+
+    const quality =
+        data.data_quality || {};
+
+
+    const workbook =
+        XLSX.utils.book_new();
+
+
+    /* SUMMARY SHEET */
+
+    const summaryRows = [
+
+        ["DataPilot AI - Business Analysis Report"],
+
+        [],
+
+        ["Metric","Value"],
+
+        [
+            "File",
+            fileInfo.filename || ""
+        ],
+
+        [
+            "Rows Analyzed",
+            fileInfo.rows || 0
+        ],
+
+        [
+            "Columns",
+            fileInfo.columns || 0
+        ],
+
+        [
+            "Revenue",
+            Number(
+                metrics.total_revenue || 0
+            )
+        ],
+
+        [
+            "Cost",
+            Number(
+                metrics.total_cost || 0
+            )
+        ],
+
+        [
+            "Profit",
+            Number(
+                metrics.total_profit || 0
+            )
+        ],
+
+        [
+            "Orders",
+            Number(
+                metrics.total_orders || 0
+            )
+        ],
+
+        [
+            "Average Order Value",
+            Number(
+                metrics.average_order_value || 0
+            )
+        ],
+
+        [
+            "Profit Margin %",
+            Number(
+                metrics.profit_margin_percent ??
+                metrics.profit_margin ??
+                0
+            )
+        ],
+
+        [
+            "Return Rate %",
+            Number(
+                metrics.return_rate_percent ??
+                metrics.return_rate ??
+                0
+            )
+        ],
+
+        [
+            "Quantity Sold",
+            Number(
+                metrics.total_quantity ??
+                metrics.quantity_sold ??
+                0
+            )
+        ],
+
+        [],
+
+        [
+            "Top Product",
+            top.top_product || ""
+        ],
+
+        [
+            "Top Category",
+            top.top_category || ""
+        ],
+
+        [
+            "Top Region",
+            top.top_region || ""
+        ],
+
+        [],
+
+        [
+            "Duplicate Records",
+            quality.duplicate_orders || 0
+        ]
+
+    ];
+
+
+    const summarySheet =
+        XLSX.utils.aoa_to_sheet(
+            summaryRows
+        );
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        summarySheet,
+        "Summary"
+    );
+
+
+    /* PRODUCTS */
+
+    const products =
+        safeArray(
+            data.product_analysis
+        );
+
+
+    const productSheet =
+        XLSX.utils.json_to_sheet(
+            products.length
+            ? products
+            : [
+                {
+                    product:"No data",
+                    revenue:0
+                }
+            ]
+        );
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        productSheet,
+        "Products"
+    );
+
+
+    /* CATEGORIES */
+
+    const categories =
+        safeArray(
+            data.category_analysis
+        );
+
+
+    const categorySheet =
+        XLSX.utils.json_to_sheet(
+            categories.length
+            ? categories
+            : [
+                {
+                    category:"No data",
+                    revenue:0
+                }
+            ]
+        );
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        categorySheet,
+        "Categories"
+    );
+
+
+    /* REGIONS */
+
+    const regions =
+        safeArray(
+            data.region_analysis
+        );
+
+
+    const regionSheet =
+        XLSX.utils.json_to_sheet(
+            regions.length
+            ? regions
+            : [
+                {
+                    region:"No data",
+                    revenue:0
+                }
+            ]
+        );
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        regionSheet,
+        "Regions"
+    );
+
+
+    /* MONTHLY */
+
+    const monthlyRows =
+        Object.entries(
+            data.monthly_revenue || {}
+        )
+        .map(
+            ([month,revenue]) => ({
+                month:month,
+                revenue:Number(
+                    revenue || 0
+                )
+            })
+        );
+
+
+    const monthlySheet =
+        XLSX.utils.json_to_sheet(
+            monthlyRows.length
+            ? monthlyRows
+            : [
+                {
+                    month:"No data",
+                    revenue:0
+                }
+            ]
+        );
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        monthlySheet,
+        "Monthly Revenue"
+    );
+
+
+    /* INSIGHTS */
+
+    const insightRows =
+        safeArray(
+            data.business_insights
+        )
+        .map(
+            (insight,index) => ({
+                No:index + 1,
+                Insight:insight
+            })
+        );
+
+
+    const insightSheet =
+        XLSX.utils.json_to_sheet(
+            insightRows.length
+            ? insightRows
+            : [
+                {
+                    No:1,
+                    Insight:
+                    "No additional insights generated."
+                }
+            ]
+        );
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        insightSheet,
+        "Insights"
+    );
+
+
+    /* DATA QUALITY */
+
+    const qualityRows =
+        Object.entries(
+            quality.missing_values || {}
+        )
+        .map(
+            ([column,count]) => ({
+                column:column,
+                missing_values:
+                    Number(count || 0)
+            })
+        );
+
+
+    const qualitySheet =
+        XLSX.utils.json_to_sheet(
+            qualityRows.length
+            ? qualityRows
+            : [
+                {
+                    column:"No missing values",
+                    missing_values:0
+                }
+            ]
+        );
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        qualitySheet,
+        "Data Quality"
+    );
+
+
+    /* DOWNLOAD */
+
+    XLSX.writeFile(
+        workbook,
+        "DataPilot_Analysis_Report.xlsx"
+    );
+
+}
+
+
+/* ================= NAVIGATION ================= */
+
+document
+.querySelectorAll(".navLink")
+.forEach(
+    link => {
+
+        link.addEventListener(
+            "click",
+            function(){
+
+                document
+                .querySelectorAll(".navLink")
+                .forEach(
+                    x =>
+                    x.classList.remove(
+                        "active"
+                    )
+                );
+
+                this.classList.add(
+                    "active"
+                );
+
+            }
+        );
+
+    }
+);
+
+
+/* ================= FILE SELECT ================= */
+
+fileInput.addEventListener(
+    "change",
+    function(){
+
+        if(this.files.length){
+
+            statusBox.textContent =
+                "Selected: " +
+                this.files[0].name;
+
+        }
+
+    }
+);
+
+</script>
+
 </body>
 </html>

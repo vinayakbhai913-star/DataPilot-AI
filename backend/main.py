@@ -3,13 +3,15 @@ import csv
 import io
 from collections import Counter, defaultdict
 from datetime import datetime
+from openpyxl import load_workbook,Workbook
+from fastapi.responses import HTMLResponse, StreamingResponse
 
 app = FastAPI(
     title="DataPilot AI",
     description="AI-powered Business Analytics Platform",
     version="2.0.0"
 )
-
+latest_report = {}
 
 # -----------------------------
 # HOME
@@ -57,27 +59,66 @@ def to_int(value):
 # -----------------------------
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
+    # -----------------------------
+    # CHECK FILE TYPE
+    # -----------------------------
 
-    # Check file type
-    if not file.filename.lower().endswith(".csv"):
+    filename = file.filename.lower()
+
+    if not filename.endswith((".csv", ".xlsx")):
         return {
-            "error": "Currently only CSV files are supported."
+            "error": "Only CSV and XLSX files are supported."
         }
 
-    # Read file
     content = await file.read()
 
     try:
-        text = content.decode("utf-8-sig")
-    except UnicodeDecodeError:
+        # Excel XLSX
+        if filename.endswith(".xlsx"):
+            workbook = load_workbook(
+                filename=io.BytesIO(content),
+                data_only=True
+            )
+
+            sheet = workbook.active
+            data = list(sheet.values)
+
+            if not data:
+                return {"error": "Excel file is empty."}
+
+            columns = [
+                str(column) if column is not None else ""
+                for column in data[0]
+            ]
+
+            rows = []
+
+            for values in data[1:]:
+                row = {}
+
+                for i, column in enumerate(columns):
+                    value = values[i] if i < len(values) else ""
+                    row[column] = "" if value is None else str(value)
+
+                rows.append(row)
+
+        # CSV
+        else:
+            try:
+                text = content.decode("utf-8-sig")
+            except UnicodeDecodeError:
+                return {
+                    "error": "Could not read the CSV encoding."
+                }
+
+            reader = csv.DictReader(io.StringIO(text))
+            rows = list(reader)
+            columns = reader.fieldnames or []
+
+    except Exception as e:
         return {
-            "error": "Could not read the CSV encoding."
+            "error": f"Could not read the file: {str(e)}"
         }
-
-    reader = csv.DictReader(io.StringIO(text))
-
-    rows = list(reader)
-    columns = reader.fieldnames or []
 
     if not rows:
         return {
@@ -137,20 +178,51 @@ async def analyze(file: UploadFile = File(...)):
 
     for row in rows:
 
-        quantity = to_int(row.get("quantity", 0))
-        unit_price = to_float(row.get("unit_price", 0))
-        cost_per_unit = to_float(row.get("cost", 0))
-        discount = to_float(row.get("discount", 0))
+        # Smart column detection
+        quantity = to_int(
+            row.get("quantity",
+            row.get("qty",
+            row.get("Qty", 0)))
+        )
 
-        # Revenue after discount
-        gross_amount = quantity * unit_price
+        unit_price = to_float(
+            row.get("unit_price",
+            row.get("price",
+            row.get("Price", 0)))
+        )
 
-        discount_amount = gross_amount * (discount / 100)
+        cost_per_unit = to_float(
+            row.get("cost_per_unit",
+            row.get("cost",
+            row.get("Cost", 0)))
+        )
 
-        revenue = gross_amount - discount_amount
+        discount = to_float(
+            row.get("discount",
+            row.get("Discount", 0))
+        )
+
+        # Revenue
+        existing_revenue = to_float(
+            row.get("revenue",
+            row.get("Revenue", 0))
+        )
+
+        if existing_revenue > 0:
+            revenue = existing_revenue
+        else:
+            gross_amount = quantity * unit_price
+            discount_amount = gross_amount * (discount / 100)
+            revenue = gross_amount - discount_amount
 
         # Cost
-        cost = quantity * cost_per_unit
+        if cost_per_unit > 0:
+            cost = quantity * cost_per_unit
+        else:
+            cost = to_float(
+                row.get("total_cost",
+                row.get("Total Cost", 0))
+            )
 
         # Profit
         profit = revenue - cost
@@ -331,6 +403,21 @@ async def analyze(file: UploadFile = File(...)):
         )
 
     # -----------------------------
+    # SAVE LATEST REPORT FOR EXCEL EXPORT
+    # -----------------------------
+
+    latest_report.update({
+        "revenue": total_revenue,
+        "cost": total_cost,
+        "profit": total_profit,
+        "orders": total_orders,
+        "aov": average_order_value,
+        "profit_margin": profit_margin,
+        "return_rate": return_rate,
+        "quantity_sold": total_quantity
+    })
+
+    # -----------------------------
     # FINAL RESPONSE
     # -----------------------------
 
@@ -418,3 +505,48 @@ def dashboard():
     html_path = Path(__file__).parent / "datapilot_dashboard.html"
     html = html_path.read_text(encoding="utf-8")
     return HTMLResponse(content=html)
+@app.post("/export-excel")
+async def export_excel():
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "DataPilot Report"
+
+    ws.append(["DataPilot AI - Business Analysis Report"])
+    ws.append([])
+    ws.append(["Metric", "Value"])
+
+    ws.append(["Revenue", latest_report.get("revenue", 0)])
+    ws.append(["Cost", latest_report.get("cost", 0)])
+    ws.append(["Profit", latest_report.get("profit", 0)])
+    ws.append(["Orders", latest_report.get("orders", 0)])
+    ws.append(["AOV", latest_report.get("aov", 0)])
+    ws.append(["Profit Margin", latest_report.get("profit_margin", 0)])
+    ws.append(["Return Rate", latest_report.get("return_rate", 0)])
+    ws.append(["Quantity Sold", latest_report.get("quantity_sold", 0)])
+
+    # Professional formatting
+    from openpyxl.styles import Font, Alignment
+
+    ws["A1"].font = Font(bold=True, size=16)
+    ws["A1"].alignment = Alignment(horizontal="center")
+
+    ws.merge_cells("A1:B1")
+
+    ws["A3"].font = Font(bold=True)
+    ws["B3"].font = Font(bold=True)
+
+    ws.column_dimensions["A"].width = 25
+    ws.column_dimensions["B"].width = 25
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition":
+            'attachment; filename="DataPilot_AI_Business_Report.xlsx"'
+        }
+    )
